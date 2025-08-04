@@ -234,13 +234,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (apiStats) {
                 // Use API statistics
                 const totalCrimesEl = document.getElementById('total-crimes-stat');
-                totalCrimesEl.dataset.count = apiStats.total_crimes || 0;
+                const totalCrimes = apiStats.total_crimes || 0;
+                totalCrimesEl.dataset.count = totalCrimes;
+                totalCrimesEl.innerText = totalCrimes.toLocaleString(); // Update immediately
                 
                 document.getElementById('top-state-stat').innerText = 
                     apiStats.top_crime_state?.state || 'N/A';
                 
                 const avgIncidenceEl = document.getElementById('avg-incidence-stat');
-                avgIncidenceEl.dataset.count = apiStats.avg_incidence || 0;
+                const avgIncidence = apiStats.avg_incidence || 0;
+                avgIncidenceEl.dataset.count = avgIncidence;
+                avgIncidenceEl.innerText = avgIncidence.toFixed(1) + '%'; // Update immediately
                 
                 // For homicide rate, calculate from data
                 if (data.length > 0) {
