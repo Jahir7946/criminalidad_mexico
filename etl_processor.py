@@ -88,25 +88,21 @@ class CrimeDataETL:
     def _detect_columns(self, df):
         """Detecta automáticamente las columnas relevantes"""
         column_mapping = {}
-        columns = [col.lower() for col in df.columns]
         
-        # Mapeo de patrones comunes
-        patterns = {
-            'state': ['estado', 'entidad', 'state', 'region'],
-            'municipality': ['municipio', 'municipality', 'ciudad', 'city'],
-            'crime_type': ['delito', 'tipo', 'crime', 'type', 'modalidad'],
-            'crimes': ['total', 'cantidad', 'numero', 'count', 'incidencias'],
-            'year': ['año', 'year', 'anio'],
-            'month': ['mes', 'month'],
-            'population': ['poblacion', 'population', 'habitantes']
-        }
-        
-        for target_col, possible_names in patterns.items():
-            for col_idx, col_name in enumerate(df.columns):
-                col_lower = col_name.lower()
-                if any(pattern in col_lower for pattern in possible_names):
-                    column_mapping[col_name] = target_col
-                    break
+        # Mapeo específico para el archivo de criminalidad
+        for col_name in df.columns:
+            col_lower = col_name.lower()
+            
+            if 'estado' in col_lower:
+                column_mapping[col_name] = 'state'
+            elif 'número de delitos' in col_lower or 'numero de delitos' in col_lower:
+                column_mapping[col_name] = 'crimes'
+            elif 'porcentaje' in col_lower and 'incidencia' in col_lower:
+                column_mapping[col_name] = 'incidence_percentage'
+            elif 'delito' in col_lower or 'crime' in col_lower:
+                column_mapping[col_name] = 'crimes'
+            elif 'incidencia' in col_lower:
+                column_mapping[col_name] = 'incidence'
         
         return column_mapping
     
@@ -149,31 +145,25 @@ class CrimeDataETL:
         return df
     
     def _aggregate_by_state(self, df):
-        """Agrega datos por estado"""
-        logger.info("📊 Agregando datos por estado...")
+        """Procesa datos por estado (sin agregación ya que cada fila es un estado)"""
+        logger.info("📊 Procesando datos por estado...")
         
         if 'state' not in df.columns:
             logger.warning("⚠️ No se encontró columna 'state', usando datos tal como están")
             return df
         
-        # Definir columnas de agregación
-        agg_dict = {}
+        # Los datos ya vienen agregados por estado en el Excel
+        # Solo verificamos que tenemos la columna de crímenes
+        if 'crimes' not in df.columns:
+            logger.warning("⚠️ No se encontró columna 'crimes', asignando valor por defecto")
+            df['crimes'] = 0
         
-        if 'crimes' in df.columns:
-            agg_dict['crimes'] = 'sum'
-        if 'population' in df.columns:
-            agg_dict['population'] = 'first'  # Asumir que la población es constante por estado
+        # Convertir porcentaje de incidencia a valor numérico si existe
+        if 'incidence_percentage' in df.columns:
+            df['incidence'] = df['incidence_percentage'] * 100  # Convertir a porcentaje real
         
-        # Si no hay columnas numéricas, contar registros
-        if not agg_dict:
-            df['crimes'] = 1
-            agg_dict['crimes'] = 'sum'
-        
-        # Agregar por estado
-        df_agg = df.groupby('state').agg(agg_dict).reset_index()
-        
-        logger.info(f"✅ Agregación completada: {len(df_agg)} estados")
-        return df_agg
+        logger.info(f"✅ Procesamiento completado: {len(df)} estados")
+        return df
     
     def _calculate_metrics(self, df):
         """Calcula métricas adicionales"""
