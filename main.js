@@ -359,110 +359,170 @@ document.addEventListener('DOMContentLoaded', async function () {
             .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
     }
 
-    // --- D3.js Mexico Map ---
-    const mexicoMapSvg = d3.select("#mexico-map-svg");
-    const mexicoMapContainer = document.getElementById('mexico-map-container');
-    const mapTooltip = d3.select("body").append("div")
+    // --- D3.js Area Chart - Comparación de Criminalidad ---
+    const areaChartSvg = d3.select("#mexico-map-svg");
+    const areaChartContainer = document.getElementById('mexico-map-container');
+    const areaTooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-    function renderMexicoMap(filteredData = crimeData) {
-        const width = mexicoMapContainer.clientWidth;
+    function renderAreaChart(filteredData = crimeData) {
+        const width = areaChartContainer.clientWidth;
         const height = 500;
-        mexicoMapSvg.selectAll("*").remove();
-        mexicoMapSvg.attr("width", width).attr("height", height);
+        const margin = { top: 20, right: 30, bottom: 60, left: 80 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        areaChartSvg.selectAll("*").remove();
+        areaChartSvg.attr("width", width).attr("height", height);
         
         if (filteredData.length === 0) return;
 
-        // Crear escala de colores para el mapa
-        const colorScale = d3.scaleSequential(d3.interpolateReds)
-            .domain(d3.extent(filteredData, d => d.crimes));
+        // Preparar datos ordenados por criminalidad
+        const sortedData = [...filteredData]
+            .sort((a, b) => b.crimes - a.crimes)
+            .map((d, i) => ({
+                ...d,
+                rank: i + 1
+            }));
 
-        // Coordenadas simplificadas de los estados de México (posiciones aproximadas)
-        const statePositions = {
-            "Aguascalientes": [102.3, 21.9], "Baja California": [115.3, 30.8], "Baja California Sur": [111.3, 26.0],
-            "Campeche": [90.5, 19.8], "Chiapas": [93.1, 16.7], "Chihuahua": [106.1, 28.6],
-            "Ciudad De México": [99.1, 19.4], "Coahuila": [101.0, 27.0], "Colima": [103.7, 19.2],
-            "Durango": [104.7, 24.0], "Estado De México": [99.7, 19.3], "Guanajuato": [101.3, 21.0],
-            "Guerrero": [99.5, 17.4], "Hidalgo": [98.8, 20.1], "Jalisco": [103.3, 20.7],
-            "Michoacán": [101.2, 19.6], "Morelos": [99.2, 18.7], "Nayarit": [104.9, 21.8],
-            "Nuevo León": [100.3, 25.7], "Oaxaca": [96.7, 17.1], "Puebla": [98.2, 19.0],
-            "Querétaro": [100.4, 20.6], "Quintana Roo": [87.5, 19.2], "San Luis Potosí": [100.9, 22.2],
-            "Sinaloa": [107.4, 25.0], "Sonora": [110.3, 29.1], "Tabasco": [92.9, 17.8],
-            "Tamaulipas": [99.0, 24.3], "Tlaxcala": [98.2, 19.3], "Veracruz": [96.9, 19.2],
-            "Yucatán": [89.6, 20.7], "Zacatecas": [102.6, 22.8]
-        };
+        // Crear escalas
+        const xScale = d3.scaleLinear()
+            .domain([1, sortedData.length])
+            .range([0, innerWidth]);
 
-        // Dibujar contorno simplificado de México
-        const mexicoOutline = [
-            [115, 32], [115, 25], [109, 25], [109, 31], [106, 31], [106, 25], [104, 25], [104, 29], 
-            [102, 29], [102, 25], [100, 25], [100, 22], [98, 22], [98, 19], [96, 19], [96, 16], 
-            [94, 16], [94, 14], [92, 14], [92, 17], [90, 17], [90, 20], [88, 20], [88, 22], 
-            [86, 22], [86, 19], [88, 19], [88, 16], [90, 16], [90, 14], [92, 14], [92, 16], 
-            [94, 16], [94, 19], [96, 19], [96, 22], [98, 22], [98, 25], [100, 25], [100, 29], 
-            [102, 29], [102, 32], [115, 32]
-        ];
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(sortedData, d => d.crimes)])
+            .range([innerHeight, 0]);
 
+        const colorScale = d3.scaleSequential(d3.interpolateViridis)
+            .domain([0, sortedData.length]);
+
+        const g = areaChartSvg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Crear área
+        const area = d3.area()
+            .x(d => xScale(d.rank))
+            .y0(innerHeight)
+            .y1(d => yScale(d.crimes))
+            .curve(d3.curveCardinal);
+
+        // Añadir gradiente
+        const gradient = areaChartSvg.append("defs")
+            .append("linearGradient")
+            .attr("id", "areaGradient")
+            .attr("gradientUnits", "userSpaceOnUse")
+            .attr("x1", 0).attr("y1", innerHeight)
+            .attr("x2", 0).attr("y2", 0);
+
+        gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#e74c3c")
+            .attr("stop-opacity", 0.1);
+
+        gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#e74c3c")
+            .attr("stop-opacity", 0.8);
+
+        // Dibujar área
+        g.append("path")
+            .datum(sortedData)
+            .attr("fill", "url(#areaGradient)")
+            .attr("d", area);
+
+        // Añadir línea superior
         const line = d3.line()
-            .x(d => (d[0] - 87) * (width / 28))
-            .y(d => (32 - d[1]) * (height / 16));
+            .x(d => xScale(d.rank))
+            .y(d => yScale(d.crimes))
+            .curve(d3.curveCardinal);
 
-        // Añadir contorno de México
-        mexicoMapSvg.append("path")
-            .datum(mexicoOutline)
-            .attr("d", line)
+        g.append("path")
+            .datum(sortedData)
             .attr("fill", "none")
-            .attr("stroke", "#ffffff")
-            .attr("stroke-width", 2)
-            .attr("opacity", 0.3);
+            .attr("stroke", "#e74c3c")
+            .attr("stroke-width", 3)
+            .attr("d", line);
 
-        // Crear círculos para cada estado
-        const circles = mexicoMapSvg.selectAll("circle")
-            .data(filteredData)
+        // Añadir puntos interactivos
+        g.selectAll(".dot")
+            .data(sortedData)
             .enter().append("circle")
-            .attr("cx", d => {
-                const pos = statePositions[d.state];
-                return pos ? (pos[0] - 87) * (width / 28) : width/2;
-            })
-            .attr("cy", d => {
-                const pos = statePositions[d.state];
-                return pos ? (32 - pos[1]) * (height / 16) : height/2;
-            })
-            .attr("r", d => Math.sqrt(d.crimes) / 25 + 5)
-            .attr("fill", d => colorScale(d.crimes))
-            .attr("stroke", "#fff")
+            .attr("class", "dot")
+            .attr("cx", d => xScale(d.rank))
+            .attr("cy", d => yScale(d.crimes))
+            .attr("r", 5)
+            .attr("fill", "#ffffff")
+            .attr("stroke", "#e74c3c")
             .attr("stroke-width", 2)
-            .attr("opacity", 0.9)
             .on("mouseover", function(event, d) {
-                mapTooltip.transition().duration(200).style("opacity", .9);
-                mapTooltip.html(`<strong>${d.state}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Incidencia: ${d.incidence}%`)
+                areaTooltip.transition().duration(200).style("opacity", .9);
+                areaTooltip.html(`<strong>#${d.rank} - ${d.state}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Incidencia: ${d.incidence}%`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
-                d3.select(this).attr("opacity", 1).attr("stroke-width", 3);
+                d3.select(this).attr("r", 8);
             })
             .on("mouseout", function(d) {
-                mapTooltip.transition().duration(500).style("opacity", 0);
-                d3.select(this).attr("opacity", 0.9).attr("stroke-width", 2);
+                areaTooltip.transition().duration(500).style("opacity", 0);
+                d3.select(this).attr("r", 5);
             });
 
-        // Añadir etiquetas para estados principales
-        mexicoMapSvg.selectAll("text")
-            .data(filteredData.filter(d => d.crimes > 8000))
+        // Añadir ejes
+        const xAxis = d3.axisBottom(xScale)
+            .tickFormat(d => `#${d}`);
+
+        const yAxis = d3.axisLeft(yScale)
+            .tickFormat(d => d.toLocaleString());
+
+        g.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0,${innerHeight})`)
+            .call(xAxis)
+            .selectAll("text")
+            .attr("fill", "#ffffff");
+
+        g.append("g")
+            .attr("class", "y-axis")
+            .call(yAxis)
+            .selectAll("text")
+            .attr("fill", "#ffffff");
+
+        // Estilo de ejes
+        g.selectAll(".domain, .tick line")
+            .attr("stroke", "#ffffff")
+            .attr("opacity", 0.3);
+
+        // Etiquetas de ejes
+        g.append("text")
+            .attr("transform", `translate(${innerWidth/2}, ${innerHeight + 50})`)
+            .style("text-anchor", "middle")
+            .attr("fill", "#ffffff")
+            .attr("font-size", "12px")
+            .text("Ranking por Criminalidad");
+
+        g.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 20)
+            .attr("x", 0 - (innerHeight / 2))
+            .style("text-anchor", "middle")
+            .attr("fill", "#ffffff")
+            .attr("font-size", "12px")
+            .text("Número de Delitos");
+
+        // Añadir etiquetas para los top 5
+        g.selectAll(".state-label")
+            .data(sortedData.slice(0, 5))
             .enter().append("text")
-            .attr("x", d => {
-                const pos = statePositions[d.state];
-                return pos ? (pos[0] - 87) * (width / 28) : width/2;
-            })
-            .attr("y", d => {
-                const pos = statePositions[d.state];
-                return pos ? (32 - pos[1]) * (height / 16) + 5 : height/2;
-            })
-            .text(d => d.state.length > 10 ? d.state.substring(0, 6) + "." : d.state.substring(0, 8))
+            .attr("class", "state-label")
+            .attr("x", d => xScale(d.rank))
+            .attr("y", d => yScale(d.crimes) - 10)
+            .text(d => d.state.length > 12 ? d.state.substring(0, 8) + "." : d.state)
             .attr("text-anchor", "middle")
-            .attr("font-size", "9px")
-            .attr("fill", "#fff")
+            .attr("font-size", "10px")
+            .attr("fill", "#ffffff")
             .attr("font-weight", "bold")
-            .style("text-shadow", "2px 2px 4px rgba(0,0,0,0.9)");
+            .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
     }
 
     // --- D3.js Treemap ---
@@ -864,7 +924,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderBubbleChart(data);
             renderBarChart(data);
             renderDoughnutChart(data);
-            renderMexicoMap(data);
+            renderAreaChart(data);
             renderTreemap(data);
             renderRadialChart(data);
             renderStackedBarChart(data);
@@ -881,7 +941,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderBubbleChart(demoData);
             renderBarChart(demoData);
             renderDoughnutChart(demoData);
-            renderMexicoMap(demoData);
+            renderAreaChart(demoData);
             renderTreemap(demoData);
             renderRadialChart(demoData);
             renderStackedBarChart(demoData);
@@ -917,7 +977,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderBubbleChart(filteredData);
                 renderBarChart(filteredData);
                 renderDoughnutChart(filteredData);
-                renderMexicoMap(filteredData);
+                renderAreaChart(filteredData);
                 renderTreemap(filteredData);
                 renderRadialChart(filteredData);
                 renderStackedBarChart(filteredData);
@@ -976,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 d.state && d.state.toLowerCase().includes(searchTerm)
             );
             renderBubbleChart(filteredData);
-            renderMexicoMap(filteredData);
+            renderAreaChart(filteredData);
             renderTreemap(filteredData);
             renderRadialChart(filteredData);
             renderStackedBarChart(filteredData);
