@@ -359,6 +359,334 @@ document.addEventListener('DOMContentLoaded', async function () {
             .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
     }
 
+    // --- D3.js Mexico Map ---
+    const mexicoMapSvg = d3.select("#mexico-map-svg");
+    const mexicoMapContainer = document.getElementById('mexico-map-container');
+    const mapTooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    function renderMexicoMap(filteredData = crimeData) {
+        const width = mexicoMapContainer.clientWidth;
+        const height = 500;
+        mexicoMapSvg.selectAll("*").remove();
+        mexicoMapSvg.attr("width", width).attr("height", height);
+        
+        if (filteredData.length === 0) return;
+
+        // Crear escala de colores para el mapa
+        const colorScale = d3.scaleSequential(d3.interpolateReds)
+            .domain(d3.extent(filteredData, d => d.crimes));
+
+        // Coordenadas simplificadas de los estados de México (posiciones aproximadas)
+        const statePositions = {
+            "Aguascalientes": [102.3, 21.9], "Baja California": [115.3, 30.8], "Baja California Sur": [111.3, 26.0],
+            "Campeche": [90.5, 19.8], "Chiapas": [93.1, 16.7], "Chihuahua": [106.1, 28.6],
+            "Ciudad De México": [99.1, 19.4], "Coahuila": [101.0, 27.0], "Colima": [103.7, 19.2],
+            "Durango": [104.7, 24.0], "Estado De México": [99.7, 19.3], "Guanajuato": [101.3, 21.0],
+            "Guerrero": [99.5, 17.4], "Hidalgo": [98.8, 20.1], "Jalisco": [103.3, 20.7],
+            "Michoacán": [101.2, 19.6], "Morelos": [99.2, 18.7], "Nayarit": [104.9, 21.8],
+            "Nuevo León": [100.3, 25.7], "Oaxaca": [96.7, 17.1], "Puebla": [98.2, 19.0],
+            "Querétaro": [100.4, 20.6], "Quintana Roo": [87.5, 19.2], "San Luis Potosí": [100.9, 22.2],
+            "Sinaloa": [107.4, 25.0], "Sonora": [110.3, 29.1], "Tabasco": [92.9, 17.8],
+            "Tamaulipas": [99.0, 24.3], "Tlaxcala": [98.2, 19.3], "Veracruz": [96.9, 19.2],
+            "Yucatán": [89.6, 20.7], "Zacatecas": [102.6, 22.8]
+        };
+
+        // Crear círculos para cada estado
+        const circles = mexicoMapSvg.selectAll("circle")
+            .data(filteredData)
+            .enter().append("circle")
+            .attr("cx", d => {
+                const pos = statePositions[d.state];
+                return pos ? (pos[0] - 87) * (width / 28) : width/2;
+            })
+            .attr("cy", d => {
+                const pos = statePositions[d.state];
+                return pos ? (32 - pos[1]) * (height / 16) : height/2;
+            })
+            .attr("r", d => Math.sqrt(d.crimes) / 30)
+            .attr("fill", d => colorScale(d.crimes))
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 2)
+            .attr("opacity", 0.8)
+            .on("mouseover", function(event, d) {
+                mapTooltip.transition().duration(200).style("opacity", .9);
+                mapTooltip.html(`<strong>${d.state}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Incidencia: ${d.incidence}%`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                d3.select(this).attr("opacity", 1).attr("stroke-width", 3);
+            })
+            .on("mouseout", function(d) {
+                mapTooltip.transition().duration(500).style("opacity", 0);
+                d3.select(this).attr("opacity", 0.8).attr("stroke-width", 2);
+            });
+
+        // Añadir etiquetas para estados principales
+        mexicoMapSvg.selectAll("text")
+            .data(filteredData.filter(d => d.crimes > 10000))
+            .enter().append("text")
+            .attr("x", d => {
+                const pos = statePositions[d.state];
+                return pos ? (pos[0] - 87) * (width / 28) : width/2;
+            })
+            .attr("y", d => {
+                const pos = statePositions[d.state];
+                return pos ? (32 - pos[1]) * (height / 16) + 5 : height/2;
+            })
+            .text(d => d.state.substring(0, 3))
+            .attr("text-anchor", "middle")
+            .attr("font-size", "10px")
+            .attr("fill", "#fff")
+            .attr("font-weight", "bold")
+            .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
+    }
+
+    // --- D3.js Treemap ---
+    const treemapSvg = d3.select("#treemap-svg");
+    const treemapContainer = document.getElementById('treemap-container');
+
+    function renderTreemap(filteredData = crimeData) {
+        const width = treemapContainer.clientWidth;
+        const height = 400;
+        treemapSvg.selectAll("*").remove();
+        treemapSvg.attr("width", width).attr("height", height);
+        
+        if (filteredData.length === 0) return;
+
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const root = d3.hierarchy({ children: filteredData })
+            .sum(d => d.crimes)
+            .sort((a, b) => b.value - a.value);
+
+        d3.treemap()
+            .size([width, height])
+            .padding(2)(root);
+
+        const leaf = treemapSvg.selectAll("g")
+            .data(root.leaves())
+            .enter().append("g")
+            .attr("transform", d => `translate(${d.x0},${d.y0})`);
+
+        leaf.append("rect")
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("fill", (d, i) => colorScale(i))
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 2)
+            .on("mouseover", function(event, d) {
+                mapTooltip.transition().duration(200).style("opacity", .9);
+                mapTooltip.html(`<strong>${d.data.state}</strong><br/>Crímenes: ${d.data.crimes.toLocaleString()}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                mapTooltip.transition().duration(500).style("opacity", 0);
+            });
+
+        leaf.append("text")
+            .attr("x", 4)
+            .attr("y", 14)
+            .text(d => d.data.state)
+            .attr("font-size", d => Math.min(12, (d.x1 - d.x0) / 8))
+            .attr("fill", "#fff")
+            .attr("font-weight", "bold");
+
+        leaf.append("text")
+            .attr("x", 4)
+            .attr("y", 28)
+            .text(d => d.data.crimes.toLocaleString())
+            .attr("font-size", d => Math.min(10, (d.x1 - d.x0) / 10))
+            .attr("fill", "#fff");
+    }
+
+    // --- D3.js Radial Chart ---
+    const radialSvg = d3.select("#radial-svg");
+    const radialContainer = document.getElementById('radial-container');
+
+    function renderRadialChart(filteredData = crimeData) {
+        const width = radialContainer.clientWidth;
+        const height = 400;
+        const radius = Math.min(width, height) / 2 - 40;
+        
+        radialSvg.selectAll("*").remove();
+        radialSvg.attr("width", width).attr("height", height);
+        
+        if (filteredData.length === 0) return;
+
+        const g = radialSvg.append("g")
+            .attr("transform", `translate(${width/2},${height/2})`);
+
+        const angleScale = d3.scaleBand()
+            .domain(filteredData.map(d => d.state))
+            .range([0, 2 * Math.PI]);
+
+        const radiusScale = d3.scaleLinear()
+            .domain([0, d3.max(filteredData, d => d.incidence)])
+            .range([0, radius]);
+
+        const colorScale = d3.scaleSequential(d3.interpolateViridis)
+            .domain(d3.extent(filteredData, d => d.incidence));
+
+        // Crear arcos
+        const arc = d3.arc()
+            .innerRadius(20)
+            .outerRadius(d => radiusScale(d.incidence))
+            .startAngle(d => angleScale(d.state))
+            .endAngle(d => angleScale(d.state) + angleScale.bandwidth());
+
+        g.selectAll("path")
+            .data(filteredData)
+            .enter().append("path")
+            .attr("d", arc)
+            .attr("fill", d => colorScale(d.incidence))
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1)
+            .on("mouseover", function(event, d) {
+                mapTooltip.transition().duration(200).style("opacity", .9);
+                mapTooltip.html(`<strong>${d.state}</strong><br/>Incidencia: ${d.incidence}%<br/>Crímenes: ${d.crimes.toLocaleString()}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                mapTooltip.transition().duration(500).style("opacity", 0);
+            });
+
+        // Añadir etiquetas
+        g.selectAll("text")
+            .data(filteredData.filter((d, i) => i % 3 === 0)) // Mostrar solo algunas etiquetas
+            .enter().append("text")
+            .attr("transform", d => {
+                const angle = angleScale(d.state) + angleScale.bandwidth() / 2;
+                const r = radiusScale(d.incidence) + 10;
+                return `rotate(${angle * 180 / Math.PI - 90}) translate(${r},0) ${angle > Math.PI ? "rotate(180)" : ""}`;
+            })
+            .attr("text-anchor", d => {
+                const angle = angleScale(d.state) + angleScale.bandwidth() / 2;
+                return angle > Math.PI ? "end" : "start";
+            })
+            .text(d => d.state.substring(0, 8))
+            .attr("font-size", "10px")
+            .attr("fill", "#333");
+    }
+
+    // --- D3.js Force Directed Graph ---
+    const forceGraphSvg = d3.select("#force-graph-svg");
+    const forceGraphContainer = document.getElementById('force-graph-container');
+
+    function renderForceGraph(filteredData = crimeData) {
+        const width = forceGraphContainer.clientWidth;
+        const height = 500;
+        forceGraphSvg.selectAll("*").remove();
+        forceGraphSvg.attr("width", width).attr("height", height);
+        
+        if (filteredData.length === 0) return;
+
+        // Crear nodos y enlaces basados en niveles de criminalidad
+        const nodes = filteredData.map(d => ({
+            id: d.state,
+            crimes: d.crimes,
+            incidence: d.incidence,
+            group: d.crimes > 15000 ? 1 : d.crimes > 8000 ? 2 : 3
+        }));
+
+        const links = [];
+        // Crear enlaces entre estados con niveles similares de criminalidad
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                if (nodes[i].group === nodes[j].group && Math.random() > 0.7) {
+                    links.push({
+                        source: nodes[i].id,
+                        target: nodes[j].id,
+                        value: Math.abs(nodes[i].crimes - nodes[j].crimes)
+                    });
+                }
+            }
+        }
+
+        const colorScale = d3.scaleOrdinal()
+            .domain([1, 2, 3])
+            .range(["#e74c3c", "#f39c12", "#27ae60"]);
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        const link = forceGraphSvg.append("g")
+            .selectAll("line")
+            .data(links)
+            .enter().append("line")
+            .attr("stroke", "#999")
+            .attr("stroke-opacity", 0.6)
+            .attr("stroke-width", 2);
+
+        const node = forceGraphSvg.append("g")
+            .selectAll("circle")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("r", d => Math.sqrt(d.crimes) / 50 + 5)
+            .attr("fill", d => colorScale(d.group))
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 2)
+            .on("mouseover", function(event, d) {
+                mapTooltip.transition().duration(200).style("opacity", .9);
+                mapTooltip.html(`<strong>${d.id}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Grupo: ${d.group === 1 ? 'Alto' : d.group === 2 ? 'Medio' : 'Bajo'}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                mapTooltip.transition().duration(500).style("opacity", 0);
+            })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        const labels = forceGraphSvg.append("g")
+            .selectAll("text")
+            .data(nodes)
+            .enter().append("text")
+            .text(d => d.id.substring(0, 5))
+            .attr("font-size", "10px")
+            .attr("text-anchor", "middle")
+            .attr("fill", "#333");
+
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            labels
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 4);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+    }
+
     // --- Chart.js Horizontal Bar Chart ---
     const barCtx = document.getElementById('crime-bar-chart').getContext('2d');
     let crimeBarChart; 
@@ -488,6 +816,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderBubbleChart(data);
             renderBarChart(data);
             renderDoughnutChart(data);
+            renderMexicoMap(data);
+            renderTreemap(data);
+            renderRadialChart(data);
+            renderForceGraph(data);
             
             console.log('✅ Dashboard initialized successfully');
             
@@ -501,6 +833,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderBubbleChart(demoData);
             renderBarChart(demoData);
             renderDoughnutChart(demoData);
+            renderMexicoMap(demoData);
+            renderTreemap(demoData);
+            renderRadialChart(demoData);
+            renderForceGraph(demoData);
         }
     }
 
@@ -533,6 +869,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderBubbleChart(filteredData);
                 renderBarChart(filteredData);
                 renderDoughnutChart(filteredData);
+                renderMexicoMap(filteredData);
+                renderTreemap(filteredData);
+                renderRadialChart(filteredData);
+                renderForceGraph(filteredData);
 
                 // When filtering, we don't re-animate the counters, just update simple text
                 const totalCrimes = filteredData.reduce((s,i) => s + (i.crimes || 0), 0);
@@ -588,6 +928,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 d.state && d.state.toLowerCase().includes(searchTerm)
             );
             renderBubbleChart(filteredData);
+            renderMexicoMap(filteredData);
+            renderTreemap(filteredData);
+            renderRadialChart(filteredData);
+            renderForceGraph(filteredData);
             // No need to re-render Chart.js charts as they are responsive by default
         }, 300);
     });
