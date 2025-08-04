@@ -41,6 +41,29 @@ def create_app(config_name='default'):
         connection_test = db_manager.test_connection()
         if connection_test['status'] == 'success':
             logger.info("✅ Conexión a MongoDB establecida")
+            
+            # Verificar si hay datos en la base de datos
+            try:
+                data_check = db_manager.get_all_crime_data(limit=1)
+                if data_check['status'] == 'success' and data_check['count'] > 0:
+                    logger.info(f"✅ Datos disponibles: {data_check['count']} registros")
+                else:
+                    logger.warning("⚠️ No hay datos en la base de datos")
+                    # En producción, intentar cargar datos automáticamente
+                    if os.getenv('FLASK_ENV') == 'production':
+                        logger.info("🔄 Intentando cargar datos automáticamente...")
+                        try:
+                            from etl_processor import CrimeDataETL
+                            etl = CrimeDataETL()
+                            results = etl.run_full_etl()
+                            if results['overall_status'] == 'success':
+                                logger.info("✅ Datos cargados automáticamente en producción")
+                            else:
+                                logger.error("❌ Error al cargar datos automáticamente")
+                        except Exception as etl_error:
+                            logger.error(f"❌ Error en ETL automático: {etl_error}")
+            except Exception as data_error:
+                logger.error(f"❌ Error verificando datos: {data_error}")
         else:
             logger.warning(f"⚠️ Problema con MongoDB: {connection_test['message']}")
     except Exception as e:
