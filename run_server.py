@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Script simplificado para ejecutar el servidor Flask
+Script para ejecutar el servidor Flask
+Detecta automáticamente si está en producción o desarrollo
 """
 
 import sys
@@ -45,14 +46,26 @@ def main():
     try:
         from app import app
         print("✅ Aplicación Flask cargada correctamente")
-        print("🌐 Servidor disponible en: http://localhost:5000")
-        print("📊 API disponible en: http://localhost:5000/api/v1/")
-        print("🔍 Health check: http://localhost:5000/api/v1/health")
-        print("\n" + "="*50)
-        print("Presiona Ctrl+C para detener el servidor")
-        print("="*50)
         
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        # Detectar entorno
+        port = int(os.environ.get('PORT', 5000))
+        is_production = os.environ.get('FLASK_ENV') == 'production'
+        
+        if is_production:
+            print(f"🌐 Servidor de producción en puerto: {port}")
+            print("📊 API disponible en: /api/v1/")
+            print("🔍 Health check: /api/v1/health")
+            # En producción, usar configuración optimizada
+            app.run(host='0.0.0.0', port=port, debug=False)
+        else:
+            print("🌐 Servidor disponible en: http://localhost:5000")
+            print("📊 API disponible en: http://localhost:5000/api/v1/")
+            print("🔍 Health check: http://localhost:5000/api/v1/health")
+            print("\n" + "="*50)
+            print("Presiona Ctrl+C para detener el servidor")
+            print("="*50)
+            # En desarrollo, usar debug mode
+            app.run(host='0.0.0.0', port=port, debug=True)
         
     except ImportError as e:
         print(f"❌ Error al importar la aplicación: {e}")
