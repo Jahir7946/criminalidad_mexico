@@ -393,6 +393,29 @@ document.addEventListener('DOMContentLoaded', async function () {
             "Yucatán": [89.6, 20.7], "Zacatecas": [102.6, 22.8]
         };
 
+        // Dibujar contorno simplificado de México
+        const mexicoOutline = [
+            [115, 32], [115, 25], [109, 25], [109, 31], [106, 31], [106, 25], [104, 25], [104, 29], 
+            [102, 29], [102, 25], [100, 25], [100, 22], [98, 22], [98, 19], [96, 19], [96, 16], 
+            [94, 16], [94, 14], [92, 14], [92, 17], [90, 17], [90, 20], [88, 20], [88, 22], 
+            [86, 22], [86, 19], [88, 19], [88, 16], [90, 16], [90, 14], [92, 14], [92, 16], 
+            [94, 16], [94, 19], [96, 19], [96, 22], [98, 22], [98, 25], [100, 25], [100, 29], 
+            [102, 29], [102, 32], [115, 32]
+        ];
+
+        const line = d3.line()
+            .x(d => (d[0] - 87) * (width / 28))
+            .y(d => (32 - d[1]) * (height / 16));
+
+        // Añadir contorno de México
+        mexicoMapSvg.append("path")
+            .datum(mexicoOutline)
+            .attr("d", line)
+            .attr("fill", "none")
+            .attr("stroke", "#ffffff")
+            .attr("stroke-width", 2)
+            .attr("opacity", 0.3);
+
         // Crear círculos para cada estado
         const circles = mexicoMapSvg.selectAll("circle")
             .data(filteredData)
@@ -405,11 +428,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const pos = statePositions[d.state];
                 return pos ? (32 - pos[1]) * (height / 16) : height/2;
             })
-            .attr("r", d => Math.sqrt(d.crimes) / 30)
+            .attr("r", d => Math.sqrt(d.crimes) / 25 + 5)
             .attr("fill", d => colorScale(d.crimes))
             .attr("stroke", "#fff")
             .attr("stroke-width", 2)
-            .attr("opacity", 0.8)
+            .attr("opacity", 0.9)
             .on("mouseover", function(event, d) {
                 mapTooltip.transition().duration(200).style("opacity", .9);
                 mapTooltip.html(`<strong>${d.state}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Incidencia: ${d.incidence}%`)
@@ -419,12 +442,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             })
             .on("mouseout", function(d) {
                 mapTooltip.transition().duration(500).style("opacity", 0);
-                d3.select(this).attr("opacity", 0.8).attr("stroke-width", 2);
+                d3.select(this).attr("opacity", 0.9).attr("stroke-width", 2);
             });
 
         // Añadir etiquetas para estados principales
         mexicoMapSvg.selectAll("text")
-            .data(filteredData.filter(d => d.crimes > 10000))
+            .data(filteredData.filter(d => d.crimes > 8000))
             .enter().append("text")
             .attr("x", d => {
                 const pos = statePositions[d.state];
@@ -434,12 +457,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const pos = statePositions[d.state];
                 return pos ? (32 - pos[1]) * (height / 16) + 5 : height/2;
             })
-            .text(d => d.state.substring(0, 3))
+            .text(d => d.state.length > 10 ? d.state.substring(0, 6) + "." : d.state.substring(0, 8))
             .attr("text-anchor", "middle")
-            .attr("font-size", "10px")
+            .attr("font-size", "9px")
             .attr("fill", "#fff")
             .attr("font-weight", "bold")
-            .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
+            .style("text-shadow", "2px 2px 4px rgba(0,0,0,0.9)");
     }
 
     // --- D3.js Treemap ---
@@ -553,138 +576,163 @@ document.addEventListener('DOMContentLoaded', async function () {
                 mapTooltip.transition().duration(500).style("opacity", 0);
             });
 
-        // Añadir etiquetas
+        // Añadir etiquetas mejoradas
         g.selectAll("text")
-            .data(filteredData.filter((d, i) => i % 3 === 0)) // Mostrar solo algunas etiquetas
+            .data(filteredData.filter((d, i) => i % 2 === 0)) // Mostrar más etiquetas
             .enter().append("text")
             .attr("transform", d => {
                 const angle = angleScale(d.state) + angleScale.bandwidth() / 2;
-                const r = radiusScale(d.incidence) + 10;
+                const r = radiusScale(d.incidence) + 15;
                 return `rotate(${angle * 180 / Math.PI - 90}) translate(${r},0) ${angle > Math.PI ? "rotate(180)" : ""}`;
             })
             .attr("text-anchor", d => {
                 const angle = angleScale(d.state) + angleScale.bandwidth() / 2;
                 return angle > Math.PI ? "end" : "start";
             })
-            .text(d => d.state.substring(0, 8))
-            .attr("font-size", "10px")
-            .attr("fill", "#333");
+            .text(d => d.state.length > 12 ? d.state.substring(0, 8) + "." : d.state.substring(0, 10))
+            .attr("font-size", "11px")
+            .attr("fill", "#ffffff")
+            .attr("font-weight", "bold")
+            .style("text-shadow", "2px 2px 4px rgba(0,0,0,0.9)");
     }
 
-    // --- D3.js Force Directed Graph ---
-    const forceGraphSvg = d3.select("#force-graph-svg");
-    const forceGraphContainer = document.getElementById('force-graph-container');
+    // --- D3.js Stacked Bar Chart por Tipo de Delito ---
+    const stackedBarSvg = d3.select("#force-graph-svg");
+    const stackedBarContainer = document.getElementById('force-graph-container');
 
-    function renderForceGraph(filteredData = crimeData) {
-        const width = forceGraphContainer.clientWidth;
+    function renderStackedBarChart(filteredData = crimeData) {
+        const width = stackedBarContainer.clientWidth;
         const height = 500;
-        forceGraphSvg.selectAll("*").remove();
-        forceGraphSvg.attr("width", width).attr("height", height);
+        const margin = { top: 20, right: 80, bottom: 60, left: 120 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        stackedBarSvg.selectAll("*").remove();
+        stackedBarSvg.attr("width", width).attr("height", height);
         
         if (filteredData.length === 0) return;
 
-        // Crear nodos y enlaces basados en niveles de criminalidad
-        const nodes = filteredData.map(d => ({
-            id: d.state,
-            crimes: d.crimes,
-            incidence: d.incidence,
-            group: d.crimes > 15000 ? 1 : d.crimes > 8000 ? 2 : 3
-        }));
+        // Preparar datos para el gráfico apilado
+        const top10States = [...filteredData]
+            .sort((a, b) => b.crimes - a.crimes)
+            .slice(0, 10);
 
-        const links = [];
-        // Crear enlaces entre estados con niveles similares de criminalidad
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                if (nodes[i].group === nodes[j].group && Math.random() > 0.7) {
-                    links.push({
-                        source: nodes[i].id,
-                        target: nodes[j].id,
-                        value: Math.abs(nodes[i].crimes - nodes[j].crimes)
-                    });
-                }
-            }
-        }
+        // Simular tipos de delitos basados en los datos reales
+        const processedData = top10States.map(d => {
+            const homicidios = d.types?.Homicidio || Math.floor(d.crimes * 0.05);
+            const robos = d.types?.Robo || Math.floor(d.crimes * 0.65);
+            const otros = d.crimes - homicidios - robos;
+            
+            return {
+                state: d.state,
+                Homicidios: homicidios,
+                Robos: robos,
+                Otros: Math.max(0, otros)
+            };
+        });
 
-        const colorScale = d3.scaleOrdinal()
-            .domain([1, 2, 3])
-            .range(["#e74c3c", "#f39c12", "#27ae60"]);
+        const keys = ["Homicidios", "Robos", "Otros"];
+        const colors = ["#e74c3c", "#f39c12", "#3498db"];
+        const colorScale = d3.scaleOrdinal().domain(keys).range(colors);
 
-        const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-            .force("charge", d3.forceManyBody().strength(-300))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+        // Crear escalas
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(processedData, d => d.Homicidios + d.Robos + d.Otros)])
+            .range([0, innerWidth]);
 
-        const link = forceGraphSvg.append("g")
-            .selectAll("line")
-            .data(links)
-            .enter().append("line")
-            .attr("stroke", "#999")
-            .attr("stroke-opacity", 0.6)
-            .attr("stroke-width", 2);
+        const yScale = d3.scaleBand()
+            .domain(processedData.map(d => d.state))
+            .range([0, innerHeight])
+            .padding(0.1);
 
-        const node = forceGraphSvg.append("g")
-            .selectAll("circle")
-            .data(nodes)
-            .enter().append("circle")
-            .attr("r", d => Math.sqrt(d.crimes) / 50 + 5)
-            .attr("fill", d => colorScale(d.group))
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 2)
+        // Crear stack
+        const stack = d3.stack().keys(keys);
+        const stackedData = stack(processedData);
+
+        const g = stackedBarSvg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Crear barras apiladas
+        const layers = g.selectAll(".layer")
+            .data(stackedData)
+            .enter().append("g")
+            .attr("class", "layer")
+            .attr("fill", d => colorScale(d.key));
+
+        layers.selectAll("rect")
+            .data(d => d)
+            .enter().append("rect")
+            .attr("y", d => yScale(d.data.state))
+            .attr("x", d => xScale(d[0]))
+            .attr("width", d => xScale(d[1]) - xScale(d[0]))
+            .attr("height", yScale.bandwidth())
             .on("mouseover", function(event, d) {
+                const key = d3.select(this.parentNode).datum().key;
+                const value = d[1] - d[0];
                 mapTooltip.transition().duration(200).style("opacity", .9);
-                mapTooltip.html(`<strong>${d.id}</strong><br/>Crímenes: ${d.crimes.toLocaleString()}<br/>Grupo: ${d.group === 1 ? 'Alto' : d.group === 2 ? 'Medio' : 'Bajo'}`)
+                mapTooltip.html(`<strong>${d.data.state}</strong><br/>${key}: ${value.toLocaleString()}`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mouseout", function(d) {
                 mapTooltip.transition().duration(500).style("opacity", 0);
-            })
-            .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended));
+            });
 
-        const labels = forceGraphSvg.append("g")
+        // Añadir ejes
+        const xAxis = d3.axisBottom(xScale)
+            .tickFormat(d => d.toLocaleString());
+
+        const yAxis = d3.axisLeft(yScale);
+
+        g.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0,${innerHeight})`)
+            .call(xAxis)
             .selectAll("text")
-            .data(nodes)
-            .enter().append("text")
-            .text(d => d.id.substring(0, 5))
-            .attr("font-size", "10px")
-            .attr("text-anchor", "middle")
-            .attr("fill", "#333");
+            .attr("fill", "#ffffff");
 
-        simulation.on("tick", () => {
-            link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
+        g.append("g")
+            .attr("class", "y-axis")
+            .call(yAxis)
+            .selectAll("text")
+            .attr("fill", "#ffffff")
+            .attr("font-size", "10px");
 
-            node
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y);
+        // Añadir líneas de eje
+        g.selectAll(".domain, .tick line")
+            .attr("stroke", "#ffffff")
+            .attr("opacity", 0.3);
 
-            labels
-                .attr("x", d => d.x)
-                .attr("y", d => d.y + 4);
-        });
+        // Añadir leyenda
+        const legend = g.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${innerWidth + 10}, 20)`);
 
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
+        const legendItems = legend.selectAll(".legend-item")
+            .data(keys)
+            .enter().append("g")
+            .attr("class", "legend-item")
+            .attr("transform", (d, i) => `translate(0, ${i * 25})`);
 
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
+        legendItems.append("rect")
+            .attr("width", 15)
+            .attr("height", 15)
+            .attr("fill", d => colorScale(d));
 
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
+        legendItems.append("text")
+            .attr("x", 20)
+            .attr("y", 12)
+            .text(d => d)
+            .attr("font-size", "12px")
+            .attr("fill", "#ffffff");
+
+        // Título del eje X
+        g.append("text")
+            .attr("transform", `translate(${innerWidth/2}, ${innerHeight + 50})`)
+            .style("text-anchor", "middle")
+            .attr("fill", "#ffffff")
+            .attr("font-size", "12px")
+            .text("Número de Delitos");
     }
 
     // --- Chart.js Horizontal Bar Chart ---
@@ -819,7 +867,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderMexicoMap(data);
             renderTreemap(data);
             renderRadialChart(data);
-            renderForceGraph(data);
+            renderStackedBarChart(data);
             
             console.log('✅ Dashboard initialized successfully');
             
@@ -836,7 +884,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderMexicoMap(demoData);
             renderTreemap(demoData);
             renderRadialChart(demoData);
-            renderForceGraph(demoData);
+            renderStackedBarChart(demoData);
         }
     }
 
@@ -872,7 +920,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderMexicoMap(filteredData);
                 renderTreemap(filteredData);
                 renderRadialChart(filteredData);
-                renderForceGraph(filteredData);
+                renderStackedBarChart(filteredData);
 
                 // When filtering, we don't re-animate the counters, just update simple text
                 const totalCrimes = filteredData.reduce((s,i) => s + (i.crimes || 0), 0);
@@ -931,7 +979,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderMexicoMap(filteredData);
             renderTreemap(filteredData);
             renderRadialChart(filteredData);
-            renderForceGraph(filteredData);
+            renderStackedBarChart(filteredData);
             // No need to re-render Chart.js charts as they are responsive by default
         }, 300);
     });
