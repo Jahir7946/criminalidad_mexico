@@ -1,0 +1,320 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+:root {
+    --primary-color: #0d6efd; 
+    --secondary-color: #adb5bd; /* Lighter gray for text */
+    --dark-color: #1a1a2e; /* Deep blue/purple */
+    --light-color: #f8f9fa;
+    --danger-color: #e94560;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --card-bg: #16213e; /* Dark blue */
+    --card-border: rgba(255, 255, 255, 0.1);
+    --text-color: #e0e0e0;
+    --bg-color: #0f172a; /* Very dark blue */
+}
+
+/* Base styling for dark mode */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding-top: 56px; /* Height of the fixed navbar */
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    height: 65vh;
+    min-height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('background.png') no-repeat center center/cover;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.main-logo {
+    width: 80px;
+    height: 80px;
+    filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(13, 110, 253, 0.7));
+    animation: float 4s ease-in-out infinite;
+}
+
+.hero-section .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.hero-section .btn-primary:hover {
+    background-color: #0b5ed7;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+}
+
+/* Navbar */
+.navbar {
+    background-color: rgba(26, 26, 46, 0.8) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+.navbar-brand img {
+    filter: brightness(0) invert(1);
+}
+
+/* Cards Styling */
+.card {
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+
+.interactive-element:hover {
+     border-color: var(--primary-color);
+}
+
+.stat-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.stat-card.card-highlight {
+    border: 1px solid var(--danger-color);
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+}
+
+.stat-card.card-highlight .text-danger {
+    color: var(--danger-color) !important;
+}
+
+.chart-card {
+    height: 450px; /* Set a fixed height for chart containers */
+    overflow: hidden;
+}
+
+#bubble-chart-card {
+    height: 550px;
+}
+
+.card-header {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--card-border);
+    font-weight: 700;
+    color: var(--light-color);
+}
+
+/* Form control for dark mode */
+.form-control {
+    background-color: #2a3a5e;
+    color: var(--light-color);
+    border: 1px solid var(--card-border);
+}
+.form-control:focus {
+    background-color: #2a3a5e;
+    color: var(--light-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+.form-control::placeholder {
+    color: var(--secondary-color);
+}
+
+/* Chart Placeholder */
+.chart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 0.25rem;
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    min-height: 250px;
+}
+
+/* Chart Canvas Container for responsive charts */
+.chart-canvas-container {
+    height: 100%; /* Take full height of parent */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Specific styling for SVG (D3 charts) */
+#crime-map-svg, #crime-bubble-chart-svg {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.25rem;
+}
+
+/* Bubble Chart Styles */
+.bubble {
+    stroke-width: 1px;
+    stroke: #0f172a;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, filter 0.2s;
+}
+
+.bubble:hover {
+    stroke-width: 2px;
+    transform: scale(1.05);
+    filter: brightness(1.2);
+}
+
+.bubble-label {
+    fill: white;
+    font-size: 10px;
+    font-weight: bold;
+    text-anchor: middle;
+    pointer-events: none;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+/* Style for D3 "states" (rectangles) */
+.state-rect {
+    stroke: var(--bg-color);
+    stroke-width: 1px;
+    cursor: pointer;
+    transition: fill 0.3s, stroke 0.3s;
+}
+
+.state-rect:hover {
+    stroke: var(--primary-color);
+    stroke-width: 2px;
+}
+
+.state-rect.highlighted {
+    stroke: var(--danger-color);
+    stroke-width: 3px;
+    filter: brightness(1.2);
+}
+
+.state-label {
+    fill: white;
+    font-size: 0.7em;
+    pointer-events: none; /* Make text not interfere with mouse events on rects */
+    text-anchor: middle;
+    alignment-baseline: middle;
+}
+
+/* Tooltip for D3 map */
+.tooltip {
+    position: absolute;
+    text-align: center;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: rgba(40, 40, 60, 0.9);
+    border: 1px solid var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+/* Footer */
+footer {
+    background-color: var(--dark-color);
+    border-top: 1px solid var(--card-border);
+}
+
+footer a {
+    text-decoration: none;
+    transition: color 0.3s;
+}
+footer a:hover {
+    color: var(--primary-color) !important;
+}
+
+footer .fab, footer .fas {
+    transition: transform 0.3s;
+}
+
+footer a:hover .fab,
+footer a:hover .fas {
+    transform: scale(1.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--dark-color);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #0b5ed7;
+}
+
+/* Animations */
+@keyframes float {
+	0% {
+		transform: translatey(0px);
+	}
+	50% {
+		transform: translatey(-10px);
+	}
+	100% {
+		transform: translatey(0px);
+	}
+}
+
+.animate-title {
+    animation: text-focus-in 1s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+}
+
+@keyframes text-focus-in {
+  0% {
+    -webkit-filter: blur(12px);
+            filter: blur(12px);
+    opacity: 0;
+  }
+  100% {
+    -webkit-filter: blur(0px);
+            filter: blur(0px);
+    opacity: 1;
+  }
+}
+
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
