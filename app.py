@@ -73,7 +73,16 @@ def create_app(config_name='default'):
 
     @app.route('/')
     def index():
-        """Página principal con información de la API"""
+        """Página principal - Dashboard interactivo"""
+        try:
+            return send_file('index.html')
+        except Exception as e:
+            logger.error(f"Error sirviendo dashboard principal: {e}")
+            return jsonify({"error": "Dashboard no disponible"}), 500
+    
+    @app.route('/api-info')
+    def api_info():
+        """Página con información de la API"""
         html_template = """
         <!DOCTYPE html>
         <html lang="es">
@@ -94,6 +103,8 @@ def create_app(config_name='default'):
                 .info { background: #d6eaf8; border: 1px solid #3498db; color: #2980b9; }
                 ul { line-height: 1.6; }
                 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #bdc3c7; color: #7f8c8d; text-align: center; }
+                .dashboard-link { background: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; font-weight: bold; }
+                .dashboard-link:hover { background: #2980b9; }
             </style>
         </head>
         <body>
@@ -107,6 +118,8 @@ def create_app(config_name='default'):
                 <div class="status info">
                     <strong>📊 Fuente de Datos:</strong> INEGI / SNSP (Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública)
                 </div>
+                
+                <a href="/" class="dashboard-link">🏠 Ir al Dashboard Principal</a>
                 
                 <h2>📋 Endpoints Disponibles</h2>
                 
@@ -146,12 +159,6 @@ def create_app(config_name='default'):
                     <div class="method">GET</div>
                     <div class="url">/api/v1/metadata</div>
                     <p>Obtiene metadatos sobre la base de datos y última actualización</p>
-                </div>
-                
-                <div class="endpoint">
-                    <div class="method">GET</div>
-                    <div class="url">/dashboard</div>
-                    <p>Accede al dashboard interactivo con visualizaciones</p>
                 </div>
                 
                 <h2>🛠️ Tecnologías Utilizadas</h2>

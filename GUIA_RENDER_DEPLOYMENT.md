@@ -90,10 +90,18 @@ Una vez desplegado, tu aplicación estará disponible en:
 https://dashboard-criminalidad-mexico.onrender.com
 ```
 
-### Endpoints para verificar:
-- **Dashboard:** `https://tu-app.onrender.com/`
-- **API Health:** `https://tu-app.onrender.com/api/v1/health`
-- **API Datos:** `https://tu-app.onrender.com/api/v1/criminalidad`
+### ✅ IMPORTANTE: Frontend Configurado
+- **Dashboard Principal:** `https://tu-app.onrender.com/` - Muestra el dashboard interactivo
+- **Información API:** `https://tu-app.onrender.com/api-info` - Documentación de endpoints
+- **API Health:** `https://tu-app.onrender.com/api/v1/health` - Estado del servidor
+- **API Datos:** `https://tu-app.onrender.com/api/v1/crime-data` - Datos de criminalidad
+
+### 🎯 Lo que verás al acceder:
+Al visitar la URL principal de tu aplicación en Render, verás directamente el **Dashboard de Criminalidad en México** con:
+- Visualizaciones interactivas
+- Gráficos de datos por estado
+- Interfaz web completa
+- Mapas y estadísticas
 
 ## 🔍 Solución de Problemas
 
