@@ -56,25 +56,31 @@ PORT=10000
 web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 ```
 
-### run_server.py (Actualizado para producción)
+### run_server.py (SOLUCIÓN DEFINITIVA)
 - ✅ Detecta automáticamente entorno de producción
-- ✅ Usa puerto dinámico de Render ($PORT)
-- ✅ Desactiva debug mode en producción
+- ✅ En producción: ejecuta Gunicorn directamente con subprocess
+- ✅ En desarrollo: usa Flask dev server
+- ✅ Evita problemas de memoria con configuración optimizada
 
 ### requirements.txt (Incluye todas las dependencias)
 - ✅ gunicorn>=21.0.0 (servidor WSGI para producción)
 - ✅ Todas las dependencias necesarias
 
-## 🚀 Proceso de Despliegue
+## 🚀 Proceso de Despliegue - SOLUCIÓN ACTUALIZADA
 
-### Opción 1: Usar Procfile (RECOMENDADO)
-```
-Start Command: (dejar vacío, usará Procfile automáticamente)
-```
+### ⚠️ IMPORTANTE: Configuración Correcta en Render
 
-### Opción 2: Comando directo
+**Start Command:** `python run_server.py`
+
+**¿Por qué esta configuración funciona?**
+- El script `run_server.py` detecta automáticamente el entorno de producción
+- Si `FLASK_ENV=production`, ejecuta Gunicorn internamente con configuración optimizada
+- Si es desarrollo, usa Flask dev server
+- Evita el error de memoria corrupta con configuración mejorada
+
+### Configuración Alternativa (si prefieres usar Procfile)
 ```
-Start Command: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+Start Command: (dejar vacío para usar Procfile automáticamente)
 ```
 
 ## 📊 Verificación del Despliegue
