@@ -305,15 +305,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-    const bubbleIncidenceColorScale = d3.scaleSequential(d3.interpolateRgb("#0dcaf0", "#e94560")) // Info to Danger color
-        .domain(d3.extent(crimeData, d => d.incidence));
-
     function renderBubbleChart(filteredData = crimeData) {
         const width = bubbleContainer.clientWidth;
         const height = bubbleContainer.clientHeight;
         bubbleSvg.selectAll("*").remove(); // Clear previous elements
         
         if (filteredData.length === 0) return;
+
+        // Crear escala de colores dinámica basada en los datos actuales
+        const incidenceExtent = d3.extent(filteredData, d => d.incidence);
+        const bubbleIncidenceColorScale = d3.scaleSequential()
+            .interpolator(d3.interpolateSpectral) // Paleta espectral con muchos colores
+            .domain(incidenceExtent); // Usar el rango real de los datos
 
         const root = d3.hierarchy({ children: filteredData })
             .sum(d => d.crimes);
@@ -333,6 +336,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             .attr("r", d => d.r)
             .attr("class", "bubble")
             .attr("fill", d => bubbleIncidenceColorScale(d.data.incidence))
+            .attr("stroke", "#ffffff")
+            .attr("stroke-width", 1)
             .on("mouseover", function(event, d) {
                 // SoundManager.playSound('hover'); // Sound functionality removed
                 bubbleTooltip.transition().duration(200).style("opacity", .9);
@@ -348,7 +353,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             .attr("class", "bubble-label")
             .attr("dy", "0.3em")
             .text(d => d.r > 20 ? d.data.state.substring(0, 3) + "." : "")
-            .style("font-size", d => Math.max(8, d.r / 4) + "px");
+            .style("font-size", d => Math.max(8, d.r / 4) + "px")
+            .style("fill", "#ffffff")
+            .style("font-weight", "bold")
+            .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
     }
 
     // --- Chart.js Horizontal Bar Chart ---
